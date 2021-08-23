@@ -7,8 +7,6 @@ const multicall = require('../helpers/multicall')
 
 const { Characters, Weapons, Shields } = require('../models')
 
-const RETRY_ATTEMPTS = 5
-
 const init = async (nft) => {
   if (!web3Helper.isNFT(nft)) {
     logger('error', 'nft', '', `${nft} not found.`)
@@ -40,23 +38,21 @@ const init = async (nft) => {
 
     const owners = await pRetry(() => multicall(multiOwner.abi, multiOwner.calls), { retries: 5 })
 
-    const bulk = NFTModel.collection.initializeUnorderedBulkOp()
-
-    items.forEach(async (item, i) => {
-      const block = await web3Helper.getWeb3().eth.getBlock(item.blockNumber).catch(() => {
-        return { number: item.blockNumber, timestamp: 0 }
-      })
-      bulk
-        .find({ [idKey]: item.nftId })
-        .upsert()
-        .replaceOne(
-          web3Helper.processNFTData(nftAddress, item.nftId, owners[i], block, data[i])
-        )
-    })
-
     try {
-      const bulkResult = await pRetry(() => bulk.execute(), { retries: RETRY_ATTEMPTS })
-
+      const bulkResult = await NFTModel.bulkWrite(
+        await Promise.all(items.map(async (item, i) => {
+          const block = await web3Helper.getWeb3().eth.getBlock(item.blockNumber).catch(() => {
+            return { number: item.blockNumber, timestamp: 0 }
+          })
+          return {
+            updateOne: {
+              filter: { [idKey]: item.nftId },
+              update: { $set: web3Helper.processNFTData(nftAddress, item.nftId, owners[i], block, data[i]) },
+              upsert: true
+            }
+          }
+        }))
+      )
       logger('success', web3Helper.getTypeName(nftAddress), 'processed', bulkResult.nUpserted + bulkResult.nModified)
       done()
     } catch (e) {

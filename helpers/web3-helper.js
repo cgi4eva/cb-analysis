@@ -202,6 +202,11 @@ const helpers = {
   isShield: (nftAddress) => nftAddress === helpers.getShieldsAddress(),
 
   processNFTData: (nftAddress, nftId, ownerAddress, block, data) => {
+    if (ownerAddress.length > 0) {
+      ownerAddress = ownerAddress[0]
+    } else {
+      ownerAddress = helpers.getDefaultAddress()
+    }
     const { number, timestamp } = block
     if (helpers.isCharacter(nftAddress)) {
       const character = data

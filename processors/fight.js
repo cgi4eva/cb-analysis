@@ -1,4 +1,3 @@
-const pRetry = require('p-retry')
 const md5 = require('md5')
 
 const web3Helper = require('../helpers/web3-helper')
@@ -7,33 +6,32 @@ const logger = require('../helpers/logger')
 
 const { Fights } = require('../models')
 
-const RETRY_ATTEMPTS = 5
-
 const init = async () => {
   const itemQueue = queue('fight')
 
   const insertBatch = async (items, done) => {
     if (!Fights) return
 
-    const bulk = Fights.collection.initializeUnorderedBulkOp()
-
-    items.forEach(async (fight) => {
-      const block = await web3Helper.getWeb3Service().getBlock(fight.blockNumber).catch(() => {
-        return { number: fight.blockNumber, timestamp: 0 }
-      })
-      const { number, timestamp } = block
-      const hash = md5(JSON.stringify(items))
-      fight.hash = hash
-      fight.blockNumber = number
-      fight.timestamp = timestamp
-      bulk
-        .find({ hash })
-        .upsert()
-        .replaceOne(fight)
-    })
-
     try {
-      const bulkResult = await pRetry(() => bulk.execute(), { retries: RETRY_ATTEMPTS })
+      const bulkResult = await Fights.bulkWrite(
+        await Promise.all(items.map(async (item, i) => {
+          const block = await web3Helper.getWeb3().eth.getBlock(item.blockNumber).catch(() => {
+            return { number: item.blockNumber, timestamp: 0 }
+          })
+          const { number, timestamp } = block
+          const hash = md5(JSON.stringify(items))
+          item.hash = hash
+          item.blockNumber = number
+          item.timestamp = timestamp
+          return {
+            updateOne: {
+              filter: { hash },
+              update: { $set: item },
+              upsert: true
+            }
+          }
+        }))
+      )
 
       logger('success', 'fight', 'processed', bulkResult.nUpserted + bulkResult.nModified)
       done()
