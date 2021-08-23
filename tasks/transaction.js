@@ -76,9 +76,11 @@ const init = async (exit, start) => {
   const checkToProcess = async (maxLength) => {
     if (toProcess.length >= maxLength) {
       const items = [...toProcess]
-      toProcess = []
-      logger('warn', 'transaction', 'queue', `${items.length} items on queue.`)
-      itemQueue.add(items)
+      if (items.length > 0) {
+        toProcess = []
+        logger('warn', 'transaction', 'queue', `${items.length} items on queue.`)
+        itemQueue.add(items)
+      }
     }
   }
   const max = Math.floor((END_BLOCK - STARTING_BLOCK) / BLOCKS_PER_CALL)
@@ -106,7 +108,7 @@ const init = async (exit, start) => {
 
   if (exit) process.exit(0)
   setTimeout(() => {
-    init(false, END_BLOCK)
+    init(false, STARTING_BLOCK)
   }, 3000)
 }
 

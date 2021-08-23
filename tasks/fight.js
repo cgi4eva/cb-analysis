@@ -77,9 +77,11 @@ const init = async (exit, start) => {
   const checkToProcess = async (maxLength) => {
     if (toProcess.length >= maxLength) {
       const items = [...toProcess]
-      toProcess = []
-      logger('warn', 'fight', 'queue', `${items.length} items on queue.`)
-      itemQueue.add(items)
+      if (items.length > 0) {
+        toProcess = []
+        logger('warn', 'fight', 'queue', `${items.length} items on queue.`)
+        itemQueue.add(items)
+      }
     }
   }
 

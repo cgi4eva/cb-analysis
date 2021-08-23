@@ -74,9 +74,11 @@ const init = async (nft, exit, start) => {
   const checkToProcess = async (maxLength) => {
     if (toProcess.length >= maxLength) {
       const items = [...toProcess]
-      toProcess = []
-      logger('warn', web3Helper.getTypeName(nftAddress), 'queue', `${items.length} items on queue.`)
-      itemQueue.add(items)
+      if (items.length > 0) {
+        toProcess = []
+        logger('warn', web3Helper.getTypeName(nftAddress), 'queue', `${items.length} items on queue.`)
+        itemQueue.add(items)
+      }
     }
   }
 

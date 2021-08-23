@@ -5,6 +5,8 @@ const logger = require('../helpers/logger')
 
 const { Fights } = require('../models')
 
+let processed = 0
+
 const init = async () => {
   const itemQueue = queue('fight')
 
@@ -28,8 +30,8 @@ const init = async () => {
           }
         })
       )
-
-      logger('success', 'fight', 'processed', bulkResult.nUpserted + bulkResult.nModified)
+      processed += bulkResult.nUpserted + bulkResult.nModified
+      logger('success', 'fight', 'processed', processed)
       done()
     } catch (e) {
       logger('error', 'fight', 'processor', e.message)

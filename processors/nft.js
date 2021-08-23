@@ -3,9 +3,13 @@ const pRetry = require('p-retry')
 const web3Helper = require('../helpers/web3-helper')
 const { queue } = require('../helpers/queue')
 const logger = require('../helpers/logger')
-const multicall = require('../helpers/multicall')
+const { multicall } = require('../helpers/multicall')
 
 const { Characters, Weapons, Shields } = require('../models')
+
+const RETRY_COUNT = 1
+
+let processed = 0
 
 const init = async (nft) => {
   if (!web3Helper.isNFT(nft)) {
@@ -32,11 +36,16 @@ const init = async (nft) => {
 
     const multiData = web3Helper.getNFTCall(nftAddress, 'get', items.map((item) => item.nftId))
 
-    const data = await pRetry(() => multicall(multiData.abi, multiData.calls), { retries: 5 })
+    const data = await pRetry(() => multicall(multiData.abi, multiData.calls), { retries: RETRY_COUNT })
 
-    const multiOwner = web3Helper.getNFTCall(nftAddress, 'ownerOf', items.map((item) => item.nftId))
+    let owners = []
+    if (nft === 'weapon') {
+      owners = items.map(item => web3Helper.getDefaultAddress())
+    } else {
+      const multiOwner = web3Helper.getNFTCall(nftAddress, 'ownerOf', items.map((item) => item.nftId))
 
-    const owners = await pRetry(() => multicall(multiOwner.abi, multiOwner.calls), { retries: 5 })
+      owners = await pRetry(() => multicall(multiOwner.abi, multiOwner.calls, true), { retries: RETRY_COUNT })
+    }
 
     try {
       const bulkResult = await NFTModel.bulkWrite(
@@ -51,14 +60,15 @@ const init = async (nft) => {
           }
         })
       )
-      logger('success', web3Helper.getTypeName(nftAddress), 'processed', bulkResult.nUpserted + bulkResult.nModified)
+      processed += bulkResult.nUpserted + bulkResult.nModified
+      logger('success', web3Helper.getTypeName(nftAddress), 'processed', processed)
       done()
     } catch (e) {
       logger('error', web3Helper.getTypeName(nftAddress), 'processor', e.message)
     }
   }
 
-  itemQueue.process(5, async (job, done) => {
+  itemQueue.process(async (job, done) => {
     if (!job.data) return done()
     logger('info', nft, 'processor', `Doing job #${job.id}`)
     return insertBatch(job.data, done)

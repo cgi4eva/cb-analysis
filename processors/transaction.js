@@ -3,6 +3,8 @@ const logger = require('../helpers/logger')
 
 const { Transactions } = require('../models')
 
+let processed = 0
+
 const init = async () => {
   const itemQueue = queue('transaction')
 
@@ -24,8 +26,8 @@ const init = async () => {
           }
         })
       )
-
-      logger('success', 'transaction', 'processed', bulkResult.nUpserted + bulkResult.nModified)
+      processed += bulkResult.nUpserted + bulkResult.nModified
+      logger('success', 'transaction', 'processed', processed)
       done()
     } catch (e) {
       logger('error', 'transaction', 'processor', e.message)
