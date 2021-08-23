@@ -33,6 +33,8 @@ const init = async (exit, start) => {
     END_BLOCK = getEndBlock(STARTING_BLOCK, BLOCKS_PER_CALL, MAX_BLOCK_MULT)
   }
 
+  CURRENT_BLOCK = STARTING_BLOCK
+
   const runQueue = (fromBlock) => async () => {
     const { onContract } = web3Helper.web3LoadBalancer()
     await onContract('cryptoblades', async (contract) => {
@@ -77,7 +79,7 @@ const init = async (exit, start) => {
       const items = [...toProcess]
       toProcess = []
       logger('warn', 'fight', 'queue', `${items.length} items on queue.`)
-      itemQueue.add(items, { attempts: RETRY_ATTEMPTS })
+      itemQueue.add(items)
     }
   }
 
@@ -89,11 +91,24 @@ const init = async (exit, start) => {
 
   await mainQueue.onIdle()
 
+  STARTING_BLOCK += (BLOCKS_PER_CALL * max)
+  CURRENT_BLOCK = STARTING_BLOCK
+  END_BLOCK = getEndBlock(STARTING_BLOCK, BLOCKS_PER_CALL, MAX_BLOCK_MULT)
+
+  await BlockQueue.findOneAndUpdate({ type: 'fight' }, {
+    startingBlock: STARTING_BLOCK,
+    currentBlock: CURRENT_BLOCK,
+    endBlock: END_BLOCK
+  }, {
+    new: true,
+    upsert: true
+  })
+
   await checkToProcess(0)
 
   if (exit) process.exit(0)
   setTimeout(() => {
-    init(false)
+    init(false, STARTING_BLOCK)
   }, 3000)
 }
 

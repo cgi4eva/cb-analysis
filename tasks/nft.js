@@ -37,6 +37,7 @@ const init = async (nft, exit, start) => {
     STARTING_BLOCK = start
     END_BLOCK = getEndBlock(STARTING_BLOCK, BLOCKS_PER_CALL, MAX_BLOCK_MULT)
   }
+  CURRENT_BLOCK = STARTING_BLOCK
 
   const runQueue = (fromBlock) => async () => {
     const { onContract } = web3Helper.web3LoadBalancer()
@@ -75,7 +76,7 @@ const init = async (nft, exit, start) => {
       const items = [...toProcess]
       toProcess = []
       logger('warn', web3Helper.getTypeName(nftAddress), 'queue', `${items.length} items on queue.`)
-      itemQueue.add(items, { attempts: RETRY_ATTEMPTS })
+      itemQueue.add(items)
     }
   }
 
@@ -87,11 +88,24 @@ const init = async (nft, exit, start) => {
 
   await mainQueue.onIdle()
 
+  STARTING_BLOCK += (BLOCKS_PER_CALL * MAX_BLOCK_MULT)
+  CURRENT_BLOCK = STARTING_BLOCK
+  END_BLOCK = getEndBlock(STARTING_BLOCK, BLOCKS_PER_CALL, MAX_BLOCK_MULT)
+
+  await BlockQueue.findOneAndUpdate({ type: web3Helper.getTypeName(nftAddress) }, {
+    startingBlock: STARTING_BLOCK,
+    currentBlock: CURRENT_BLOCK,
+    endBlock: END_BLOCK
+  }, {
+    new: true,
+    upsert: true
+  })
+
   await checkToProcess(0)
 
   if (exit) process.exit(0)
   setTimeout(() => {
-    init(nft, false)
+    init(nft, false, STARTING_BLOCK)
   }, 3000)
 }
 

@@ -40,10 +40,8 @@ const init = async (nft) => {
 
     try {
       const bulkResult = await NFTModel.bulkWrite(
-        await Promise.all(items.map(async (item, i) => {
-          const block = await web3Helper.getWeb3().eth.getBlock(item.blockNumber).catch(() => {
-            return { number: item.blockNumber, timestamp: 0 }
-          })
+        items.map((item, i) => {
+          const block = { number: item.blockNumber, timestamp: 0 }
           return {
             updateOne: {
               filter: { [idKey]: item.nftId },
@@ -51,21 +49,19 @@ const init = async (nft) => {
               upsert: true
             }
           }
-        }))
+        })
       )
       logger('success', web3Helper.getTypeName(nftAddress), 'processed', bulkResult.nUpserted + bulkResult.nModified)
       done()
     } catch (e) {
       logger('error', web3Helper.getTypeName(nftAddress), 'processor', e.message)
     }
-    setTimeout(() => {
-      return init(nft)
-    }, 3000)
   }
 
-  itemQueue.process(async (job, done) => {
+  itemQueue.process(5, async (job, done) => {
+    if (!job.data) return done()
     logger('info', nft, 'processor', `Doing job #${job.id}`)
-    insertBatch(job.data, done)
+    return insertBatch(job.data, done)
   })
 }
 
