@@ -38,6 +38,10 @@ const init = async () => {
     } catch (e) {
       logger('error', 'fight', 'processor', e.message)
     }
+
+    setTimeout(() => {
+      return init()
+    }, 3000)
   }
 
   itemQueue.process(async (job, done) => {

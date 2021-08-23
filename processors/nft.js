@@ -58,6 +58,9 @@ const init = async (nft) => {
     } catch (e) {
       logger('error', web3Helper.getTypeName(nftAddress), 'processor', e.message)
     }
+    setTimeout(() => {
+      return init(nft)
+    }, 3000)
   }
 
   itemQueue.process(async (job, done) => {
