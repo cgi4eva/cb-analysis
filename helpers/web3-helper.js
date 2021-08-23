@@ -110,11 +110,13 @@ const helpers = {
     return createLoadBalancedContractsService(contractsServices)
   },
 
-  getNFTDataCall: (nftAddress, nftIds) => ({
+  getWeb3Service: () => helpers.web3LoadBalancer().runWeb3(async (web3) => web3.eth),
+
+  getNFTCall: (nftAddress, name, nftIds) => ({
     abi: helpers.getAbiFromAddress(nftAddress),
     calls: nftIds.map((nftId) => ({
       address: nftAddress,
-      name: 'get',
+      name,
       params: [nftId]
     }))
   }),

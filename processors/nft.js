@@ -3,6 +3,7 @@ const pRetry = require('p-retry')
 const web3Helper = require('../helpers/web3-helper')
 const { queue } = require('../helpers/queue')
 const logger = require('../helpers/logger')
+const multicall = require('../helpers/multicall')
 
 const { Characters, Weapons, Shields } = require('../models')
 
@@ -31,17 +32,13 @@ const init = async (nft) => {
     const NFTModel = getModelByNFT(nft)
     if (!NFTModel || !idKey) return
 
-    const { runContract } = web3Helper.web3LoadBalancer()
+    const multiData = web3Helper.getNFTCall(nftAddress, 'get', items.map((item) => item.nftId))
 
-    const data = await Promise.all(items.map(async (item, i) => {
-      return runContract(
-        nft,
-        'get',
-        [item.nftId]
-      ).then(val => val)
-    }))
+    const data = await pRetry(() => multicall(multiData.abi, multiData.calls), { retries: 5 })
 
-    console.log(data.length)
+    const multiOwner = web3Helper.getNFTCall(nftAddress, 'ownerOf', items.map((item) => item.nftId))
+
+    const owners = await pRetry(() => multicall(multiOwner.abi, multiOwner.calls), { retries: 5 })
 
     const bulk = NFTModel.collection.initializeUnorderedBulkOp()
 
@@ -49,15 +46,11 @@ const init = async (nft) => {
       const block = await web3Helper.getWeb3().eth.getBlock(item.blockNumber).catch(() => {
         return { number: item.blockNumber, timestamp: 0 }
       })
-      let ownerAddress = web3Helper.getDefaultAddress()
-      ownerAddress = await web3Helper.getNFTOwner(nftAddress, item.nftId).catch(() => {
-        return web3Helper.getDefaultAddress()
-      })
       bulk
         .find({ [idKey]: item.nftId })
         .upsert()
         .replaceOne(
-          web3Helper.processNFTData(nftAddress, item.nftId, ownerAddress, block, data[i])
+          web3Helper.processNFTData(nftAddress, item.nftId, owners[i], block, data[i])
         )
     })
 

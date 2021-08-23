@@ -18,7 +18,7 @@ const init = async () => {
     const bulk = Fights.collection.initializeUnorderedBulkOp()
 
     items.forEach(async (fight) => {
-      const block = await web3Helper.getWeb3().eth.getBlock(fight.blockNumber).catch(() => {
+      const block = await web3Helper.getWeb3Service().getBlock(fight.blockNumber).catch(() => {
         return { number: fight.blockNumber, timestamp: 0 }
       })
       const { number, timestamp } = block

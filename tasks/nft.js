@@ -9,7 +9,7 @@ const { getEndBlock, bQueueToBlocks } = require('../helpers/task')
 const { BlockQueue } = require('../models')
 
 const BLOCKS_PER_CALL = 2000
-const DATAS_PER_BATCH = 300
+const DATAS_PER_BATCH = 500
 const RETRY_ATTEMPTS = 5
 const MAX_BLOCK_MULT = 10
 

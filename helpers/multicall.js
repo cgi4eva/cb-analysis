@@ -1,21 +1,16 @@
 const { Interface } = require('@ethersproject/abi')
-const MultiCallAbi = require('../contracts/MultiCall.json')
+const { web3LoadBalancer } = require('./web3-helper')
 
-const addresses = {
-  56: '0x1ee38d535d541c55c9dae27b12edf090c608e6fb'
-}
-
-async function multicall (web3, abi, calls) {
-  const chainId = await web3.eth.getChainId()
-  const multi = new web3.eth.Contract(MultiCallAbi, addresses[chainId])
-  const itf = new Interface(abi)
+async function multicall (abi, calls) {
+  const interface_ = new Interface(abi)
 
   const calldata = calls.map((call) => [
     call.address.toLowerCase(),
-    itf.encodeFunctionData(call.name, call.params)
+    interface_.encodeFunctionData(call.name, call.params)
   ])
-  const { returnData } = await multi.methods.aggregate(calldata).call()
-  const res = returnData.map((call, i) => itf.decodeFunctionResult(calls[i].name, call))
+
+  const { returnData } = await web3LoadBalancer().runContract('multicall', 'aggregate', [calldata])
+  const res = returnData.map((call, i) => interface_.decodeFunctionResult(calls[i].name, call))
 
   return res
 }
