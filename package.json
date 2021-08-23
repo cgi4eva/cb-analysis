@@ -1,0 +1,42 @@
+{
+  "name": "analytics",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "fight": "node . --fight",
+    "char": "node . --char",
+    "weapon": "node . --weapon",
+    "shield": "node . --shield",
+    "trans": "node . --trans",
+    "start": "node ."
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "bull": "^3.29.0",
+    "cli-color": "^2.0.0",
+    "cli-progress": "^3.9.0",
+    "delay": "^5.0.0",
+    "dotenv": "^10.0.0",
+    "lodash": "^4.17.21",
+    "md5": "^2.3.0",
+    "moment": "^2.29.1",
+    "moment-timezone": "^0.5.33",
+    "mongoose": "^5.13.7",
+    "p-queue": "^5.0.0",
+    "p-retry": "^4.6.1",
+    "remove": "^0.1.5",
+    "web3": "^1.5.2",
+    "web3-load-balance": "github:jomgapuz/web3-load-balance",
+    "yargs": "^17.1.1"
+  },
+  "devDependencies": {
+    "eslint": "^7.32.0",
+    "eslint-config-google": "^0.14.0",
+    "eslint-config-standard": "^16.0.3",
+    "eslint-plugin-import": "^2.24.0",
+    "eslint-plugin-node": "^11.1.0",
+    "eslint-plugin-promise": "^5.1.0"
+  }
+}
